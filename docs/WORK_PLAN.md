@@ -1,7 +1,7 @@
-# 나의 아침비서 (My Secretary) — 온디바이스 한국어 음성 할 일 추출 앱 작업 계획서 (v0.2)
+# 나의 아침비서 (My Secretary) — 온디바이스 한국어 음성 할 일 추출 앱 작업 계획서 (v0.3)
 
 - 작성일: 2026-09-27 (v0.1 → v0.2: 사용자 답변 반영)
-- 상태: **계획 확정 단계 — 개발 미착수.** 사용자의 착수 지시 후 Phase 0부터 진행한다.
+- 상태: **1차 구현 완료 (§9).** 테스트 데이터 업로드 후 Phase 0 벤치마크 진행 예정.
 - 대상 기기: Samsung Galaxy S26 기본형 **SM-S942N (한국 모델, Exynos 2600)**, 개인 사용 전용
 
 ## 0. 확정 사항 요약 (v0.2)
@@ -256,7 +256,24 @@ testdata/
 
 ---
 
-## 9. References
+## 9. 구현 현황 (v0.3, 2026-09-27)
+
+Phase 1–5의 기능을 1차 구현했다(테스트 데이터 업로드 전이므로 Phase 0 벤치마크 워크플로는 아직 없음).
+
+| 항목 | 구현 내용 | 계획 대비 변경 |
+|---|---|---|
+| STT | whisper.cpp v1.9.4 서브모듈, JNI, `ggml-base-q8_0.bin` + `ggml-silero-v6.2.0.bin`(VAD), beam search 5, `language=ko`, `suppress_nst` | — |
+| 빌드 플래그 | `GGML_CPU_ARM_ARCH=armv8.2-a+fp16+dotprod+i8mm`, OpenMP 끔(스핀 대기에 따른 전력 소모 방지), arm64-v8a 단일 ABI | — |
+| 디코딩 | MediaCodec → 스트리밍 windowed-sinc 리샘플러(16 kHz mono) | 전체 원본 PCM을 메모리에 올리지 않도록 스트리밍 방식 채택 |
+| 발열 | 시작 시 `MODERATE` 이상이면 2스레드, 처리 중 `SEVERE` 이상이면 **중단** 후 안내 | "일시 정지"를 "중단"으로 단순화 |
+| 저장소 | 이력·교정 사전을 JSON 파일로 저장 | Room 대신 JSON(의존성·빌드 복잡도 감소) |
+| 입력 | 최근 녹음 목록(오늘 최신 파일 기본 선택) + [다른 파일 선택] | 공유 인텐트 수신은 제외(사용자 결정: 앱 실행 후 선택) |
+| 할 일 정리 | Gemini Nano(90초 제한) → 실패/빈 결과 시 규칙 기반, 결과 화면에서 [AI로 다시 정리] | — |
+| 서명 | release 빌드를 debug 키로 서명(개인 사이드로드용) | — |
+
+---
+
+## 10. References
 
 1. O2 UK, "Specifications For Your Samsung Galaxy S26." https://www.o2.co.uk/help/phones-sims-and-devices/samsung/galaxy-s26-android-16/specifications
 2. DeviceSpecifications, "Samsung Galaxy S26 – Specifications." https://www.devicespecifications.com/en/model/24cf666d
