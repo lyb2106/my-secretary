@@ -33,11 +33,25 @@ android {
         }
     }
 
+    signingConfigs {
+        // One fixed key for every CI build. Android refuses to update an installed app with an
+        // APK signed by a different key ("앱이 설치되지 않음"), and CI runners generate a fresh
+        // random debug key each run. Personal sideload app, so the key lives in the repo.
+        create("sideload") {
+            storeFile = rootProject.file("keystore/my-secretary.jks")
+            storePassword = "mysecretary"
+            keyAlias = "mysecretary"
+            keyPassword = "mysecretary"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Personal sideload build: sign release with the debug key so it installs directly.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("sideload")
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("sideload")
         }
     }
 
