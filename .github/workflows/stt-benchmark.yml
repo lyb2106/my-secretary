@@ -1,0 +1,54 @@
+name: STT benchmark
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['testdata/**', 'scripts/stt_benchmark.sh', 'scripts/cer.py', '.github/workflows/stt-benchmark.yml']
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # App model first; small = Phase 0 candidate; large-v3-turbo = accuracy ceiling reference.
+      MODELS: ggml-base-q8_0.bin ggml-small-q5_1.bin ggml-large-v3-turbo-q5_0.bin
+      VAD_MODEL: ggml-silero-v6.2.0.bin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install ffmpeg
+        run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+
+      - name: Build whisper-cli
+        run: |
+          cmake -S third_party/whisper.cpp -B build-cli -DCMAKE_BUILD_TYPE=Release \
+            -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF
+          cmake --build build-cli -j --target whisper-cli
+
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: bench-models-${{ env.MODELS }}-${{ env.VAD_MODEL }}
+
+      - name: Download models
+        run: |
+          mkdir -p models
+          for m in $MODELS; do
+            [[ -s models/$m ]] || curl -fL --retry 4 -o models/$m https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$m
+          done
+          [[ -s models/$VAD_MODEL ]] || curl -fL --retry 4 -o models/$VAD_MODEL https://huggingface.co/ggml-org/whisper-vad/resolve/main/$VAD_MODEL
+          ls -la models
+
+      - name: Run benchmark
+        run: |
+          scripts/stt_benchmark.sh build-cli/bin/whisper-cli models models/$VAD_MODEL bench-out $MODELS
+          cat bench-out/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stt-benchmark
+          path: bench-out/
