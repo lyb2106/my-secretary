@@ -262,7 +262,7 @@ Phase 1–5의 기능을 1차 구현했다(테스트 데이터 업로드 전이�
 
 | 항목 | 구현 내용 | 계획 대비 변경 |
 |---|---|---|
-| STT | whisper.cpp v1.9.4 서브모듈, JNI, `ggml-base-q8_0.bin` + `ggml-silero-v6.2.0.bin`(VAD), beam search 5, `language=ko`, `suppress_nst` | — |
+| STT | whisper.cpp v1.9.4 서브모듈, JNI, `ggml-small-q5_1.bin`(§9.1에 따라 base에서 전환) + `ggml-silero-v6.2.0.bin`(VAD), beam search 5, `language=ko`, `suppress_nst` | — |
 | 빌드 플래그 | `GGML_CPU_ARM_ARCH=armv8.2-a+fp16+dotprod+i8mm`, OpenMP 끔(스핀 대기에 따른 전력 소모 방지), arm64-v8a 단일 ABI | — |
 | 디코딩 | MediaCodec → 스트리밍 windowed-sinc 리샘플러(16 kHz mono) | 전체 원본 PCM을 메모리에 올리지 않도록 스트리밍 방식 채택 |
 | 발열 | 시작 시 `MODERATE` 이상이면 2스레드, 처리 중 `SEVERE` 이상이면 **중단** 후 안내 | "일시 정지"를 "중단"으로 단순화 |
@@ -272,6 +272,21 @@ Phase 1–5의 기능을 1차 구현했다(테스트 데이터 업로드 전이�
 | 서명 | release 빌드를 debug 키로 서명(개인 사이드로드용) | — |
 | 권한 | 앱이 선언한 권한: 오디오 읽기, 알림, 포그라운드 서비스(mediaProcessing) | ML Kit가 `INTERNET`, `ACCESS_NETWORK_STATE`를 추가함(라이브러리 병합) |
 | 첫 빌드 | CI run #1 성공, APK 109.3 MB(base-q8_0 모델 81.8 MB + VAD 0.9 MB + `libsecretary.so` 2.7 MB) | — |
+
+### 9.1 Phase 0 벤치마크 1차 결과 (testdata/260927_1, 45.6초)
+
+CI(`stt-benchmark.yml`)에서 앱과 동일한 whisper.cpp v1.9.4·동일 디코딩 설정(beam 5, ko, suppress-nst, Silero VAD)으로 측정했다.
+
+| 모델 | 크기 | CER | 오류/정답 문자 | CI 처리 시간(x86, 참고) |
+|---|---|---|---|---|
+| base-q8_0 | 82 MB | 17.6% | 16/91 | 3.3 s |
+| **small-q5_1** | 190 MB | **9.9%** | 9/91 | 11.1 s |
+| large-v3-turbo-q5_0 (상한 참고) | 574 MB | 3.3% | 3/91 | 41.0 s |
+
+- small은 base 대비 CER을 상대적으로 44% 낮춰 §3.2의 정확도 규칙(≥30%)을 충족 → **small-q5_1을 기본 모델로 전환**하고, 기기 자원 규칙(5분 녹음 ≤60초, 열 상태 MODERATE 미만)은 알파 테스트에서 확인한다. 기준 미달이면 base-q8_0으로 되돌린다.
+- 주요 오류: base는 전문용어가 크게 훼손됨(심혈관→시멸관, 라디오믹스→에디오넵스, 타이탄바이오→타이틀한 바이오). small은 "메일→매일", "라디오믹스→레디오믹스", "마이크로바이옴→마이크로 바이오드", "1번→2번", "마쳐야→맞춰야". 반복되는 용어 오류는 교정 사전(§5)으로 보정 가능하다.
+- 표본이 1건(91자)이므로 CER 추정의 불확실성이 크다. 데이터가 누적되면 재평가한다.
+- 규칙 기반 추출 개선: 이 녹음에서 (i) 동사 없는 번호 항목("1번 290만원 토스뱅크") 누락, (ii) 줄바꿈 미인식, (iii) "-해야되고" 미처리가 확인되어 수정하고 회귀 테스트로 고정했다.
 
 ---
 

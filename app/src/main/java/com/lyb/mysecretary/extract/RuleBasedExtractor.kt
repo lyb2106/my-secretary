@@ -30,6 +30,8 @@ class RuleBasedExtractor {
             .split(Regex("\\s*\\n+\\s*"))
             .flatMap { it.split(Regex("(?<=[.!?。])\\s+|\\s*[.!?。]+$")) }
             .flatMap { it.split(CONNECTOR) }
+            // A spoken item number starts a new item even without punctuation ("... 2번 290만 원 ...").
+            .flatMap { it.split(Regex("\\s+(?=\\d{1,2}\\s*번\\s)")) }
         // "메일 보내고, 보고서 써야 돼" → two clauses; only split on a comma after a "-고" verb.
         return sentences
             .flatMap { it.split(Regex("(?<=고),\\s*")) }
@@ -134,7 +136,7 @@ class RuleBasedExtractor {
             "그다음에", "다음으로", "마지막으로", "그리고나서",
         )
         private val LEADING_PHRASES = listOf(
-            "오늘 해야 할 일은", "오늘 할 일은", "그 다음에", "그리고 나서", "해야 할 일은", "할 일은", "오늘 할 일",
+            "오늘 해야 할 일은", "오늘 할 일은", "오늘의 할 일은", "오늘의 할 일", "오늘의 할일", "그 다음에", "그리고 나서", "해야 할 일은", "할 일은", "오늘 할 일",
             "첫 번째로", "첫번째로", "두 번째로", "두번째로", "세 번째로", "세번째로", "첫째", "둘째", "셋째",
         )
 

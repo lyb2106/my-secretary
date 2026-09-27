@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val whisperModel = providers.gradleProperty("whisperModel").getOrElse("ggml-base-q8_0.bin")
+val whisperModel = providers.gradleProperty("whisperModel").getOrElse("ggml-small-q5_1.bin")
 val vadModel = providers.gradleProperty("vadModel").getOrElse("ggml-silero-v6.2.0.bin")
 
 android {

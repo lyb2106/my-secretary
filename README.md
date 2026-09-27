@@ -2,7 +2,7 @@
 
 아침에 Samsung 기본 '음성 녹음' 앱으로 녹음한 오늘 할 일을 **기기 안에서만** 텍스트로 바꾸고, 행동 하나당 한 줄의 체크리스트로 정리해 주는 개인용 Android 앱입니다. 대상 기기는 Galaxy S26 (SM-S942N)입니다.
 
-- 음성 인식: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) v1.9.4, 다국어 `base` 모델(Q8_0 양자화), CPU 추론, Silero VAD
+- 음성 인식: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) v1.9.4, 다국어 `small` 모델(Q5_1 양자화; 첫 벤치마크 결과로 base에서 전환), CPU 추론, Silero VAD
 - 할 일 정리: 기기 내장 Gemini Nano(ML Kit GenAI Prompt API). 쓸 수 없으면 규칙 기반 정리로 자동 전환
 - 출력: Obsidian 호환 Markdown 체크리스트, **[전체 복사]** · **[공유]**
 - 네트워크: 앱 코드는 네트워크를 쓰지 않습니다. ML Kit 라이브러리가 인터넷 권한을 자동으로 추가하지만, 음성과 전사문은 기기 밖으로 나가지 않습니다.

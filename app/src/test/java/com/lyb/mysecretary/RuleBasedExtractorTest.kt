@@ -63,6 +63,23 @@ class RuleBasedExtractorTest {
         )
     }
 
+    /** Same memo as whisper small-q5_1 printed it: one line, no punctuation. */
+    @Test
+    fun handlesSingleLineTranscript() {
+        val transcript = "아 오늘의 할 일 2번 290만 원 토스뱅크 그 다음에 또 중요한 게 내일까지 타이탄 바이오 " +
+            "매일 보내기 그리고 내일까지 마이크로 바이오드도 대응해야 되고 그리고 심혈관 성차 레디오믹스 논문 " +
+            "나머지 70편 평가 맞춰야 함"
+        assertEquals(
+            listOf(
+                "290만 원 토스뱅크",
+                "내일까지 타이탄 바이오 매일 보내기",
+                "내일까지 마이크로 바이오드도 대응",
+                "심혈관 성차 레디오믹스 논문 나머지 70편 평가 맞추기",
+            ),
+            extractor.extract(transcript),
+        )
+    }
+
     @Test
     fun nominalizesVerbStems() {
         assertEquals("챙기기", extractor.nominalize("챙겨"))
