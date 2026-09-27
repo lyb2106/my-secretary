@@ -1,0 +1,15 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+captures/
+
+# Model files are downloaded by scripts/download_models.sh (not committed)
+app/src/main/assets/models/*.bin
+
+# OS
+.DS_Store

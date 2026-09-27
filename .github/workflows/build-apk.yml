@@ -1,0 +1,73 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths-ignore: ['docs/**', 'testdata/**', '**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: app/src/main/assets/models/*.bin
+          key: models-${{ hashFiles('gradle.properties', 'scripts/download_models.sh') }}
+
+      - name: Download models
+        run: scripts/download_models.sh
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testReleaseUnitTest
+
+      - name: Build release APK (debug-signed)
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Rename APK
+        id: apk
+        run: |
+          VERSION=0.1.${{ github.run_number }}
+          OUT=my-secretary-${VERSION}.apk
+          cp app/build/outputs/apk/release/app-release.apk "$OUT"
+          ls -la "$OUT"
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: my-secretary-apk
+          path: ${{ steps.apk.outputs.file }}
+
+      # A prerelease makes the APK downloadable straight from the phone's browser.
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.apk.outputs.version }}
+          name: 나의 아침비서 ${{ steps.apk.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          body: |
+            Commit ${{ github.sha }} (${{ github.ref_name }}) 자동 빌드.
+            휴대폰에서 아래 APK를 내려받아 설치하세요.
+          files: ${{ steps.apk.outputs.file }}
