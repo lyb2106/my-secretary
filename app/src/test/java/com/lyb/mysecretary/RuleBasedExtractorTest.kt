@@ -30,6 +30,39 @@ class RuleBasedExtractorTest {
         )
     }
 
+    /** testdata/transcript/260927_1.txt (the user's reference transcript). */
+    @Test
+    fun handlesLineSeparatedMemoWithNumberedItem() {
+        val transcript = """
+            아아아
+
+            오늘의 할일
+
+            1번 290만원 토스뱅크
+
+            그 다음에 또 중요한게
+
+            내일까지 타이탄바이오 메일보내기
+
+            그리고
+
+            내일까지 마이크로바이옴도 대응해야되고
+
+            그리고
+
+            심혈관 성차 라디오믹스 논문 나머지 70편 평가 마쳐야 함.
+        """.trimIndent()
+        assertEquals(
+            listOf(
+                "290만원 토스뱅크",
+                "내일까지 타이탄바이오 메일보내기",
+                "내일까지 마이크로바이옴도 대응",
+                "심혈관 성차 라디오믹스 논문 나머지 70편 평가 마치기",
+            ),
+            extractor.extract(transcript),
+        )
+    }
+
     @Test
     fun nominalizesVerbStems() {
         assertEquals("챙기기", extractor.nominalize("챙겨"))

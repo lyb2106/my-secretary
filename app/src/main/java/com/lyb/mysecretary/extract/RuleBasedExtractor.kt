@@ -27,8 +27,8 @@ class RuleBasedExtractor {
 
     internal fun splitClauses(text: String): List<String> {
         val sentences = text
-            .replace('\n', ' ')
-            .split(Regex("(?<=[.!?。])\\s+|\\s*[.!?。]+$"))
+            .split(Regex("\\s*\\n+\\s*"))
+            .flatMap { it.split(Regex("(?<=[.!?。])\\s+|\\s*[.!?。]+$")) }
             .flatMap { it.split(CONNECTOR) }
         // "메일 보내고, 보고서 써야 돼" → two clauses; only split on a comma after a "-고" verb.
         return sentences
@@ -49,10 +49,14 @@ class RuleBasedExtractor {
         words = text.split(" ").filter { it.isNotEmpty() }
         while (words.isNotEmpty() && words.first() in LEADING_WORDS) words = words.drop(1)
         return words.joinToString(" ")
+            .replace(EMPHASIS, "")
+            .trim()
     }
 
     internal fun isAction(clause: String): Boolean {
         if (QUESTION.containsMatchIn(clause)) return false
+        // "1번 290만원 토스뱅크": an explicitly numbered item is a to-do even without a verb.
+        if (ORDINAL.containsMatchIn(clause)) return true
         if (OBLIGATION.containsMatchIn(clause)) return true
         if (PAST.containsMatchIn(clause)) return false
         return ACTION_WORDS.any { clause.contains(it) }
@@ -60,6 +64,7 @@ class RuleBasedExtractor {
 
     internal fun toNominal(clause: String): String {
         var text = clause.trim().removeSuffix("요").trim()
+        text = ORDINAL.replace(text, "").trim()
 
         text = OBLIGATION_END.replace(text) { nominalize(it.groupValues[1]) }
         text = FUTURE_END.replace(text) { m -> dropRieul(m.groupValues[1])?.let { nominalize(it) } ?: m.value }
@@ -133,6 +138,10 @@ class RuleBasedExtractor {
             "첫 번째로", "첫번째로", "두 번째로", "두번째로", "세 번째로", "세번째로", "첫째", "둘째", "셋째",
         )
 
+        private val ORDINAL = Regex("^(?:\\d{1,2}|하나|둘|셋|넷|다섯)\\s*(?:번째|번)\\s*[.,)]?\\s*")
+        // "또 중요한 게", "중요한 건" — emphasis, not part of the action.
+        private val EMPHASIS = Regex("^(?:또\\s*)?(?:제일\\s*|가장\\s*|진짜\\s*)?중요한\\s*(?:게|건|거는|것은|거)\\s*")
+
         private val QUESTION = Regex("(까\\?|나\\?|\\?$|을까$|ㄹ까$|할까$|될까$)")
         private val OBLIGATION = Regex(
             "(야\\s*(돼|된다|되|됨|해|한다|함|하고|겠|지|할|합니다|됩니다)|할\\s*(거|것|게|예정|계획)|" +
@@ -147,7 +156,7 @@ class RuleBasedExtractor {
         )
 
         private val OBLIGATION_END = Regex(
-            "(\\S+?)야\\s*(돼|된다|되|됨|해|한다|함|하고|겠다|겠어|겠네|겠음|지|합니다|됩니다|할 듯)$",
+            "(\\S+?)야\\s*(되고|되구|돼서|돼요|돼|된다|되|됨|해|한다|함|하고|겠다|겠어|겠네|겠음|지|합니다|됩니다|할 듯)$",
         )
         private val FUTURE_END = Regex("(\\S+)\\s+(거야|거다|거임|거예요|것|예정이다|예정|계획이다|계획)$")
         private val FUTURE_GE_END = Regex("(\\S+)게$")
