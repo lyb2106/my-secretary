@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
-    <!-- The app itself never uses the network: speech recognition runs entirely on the device. -->
+    <!-- App code never uses the network (speech recognition is on-device). Note: the ML Kit GenAI
+         library merges INTERNET/ACCESS_NETWORK_STATE into the final manifest. -->
 
     <application
         android:name=".App"
