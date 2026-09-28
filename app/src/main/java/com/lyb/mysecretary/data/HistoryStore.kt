@@ -40,6 +40,10 @@ class HistoryStore(context: Context) {
         write(entries.sortedByDescending { it.id })
     }
 
+    fun delete(id: Long) = synchronized(lock) {
+        write(read().filter { it.id != id })
+    }
+
     private fun read(): List<HistoryEntry> {
         if (!file.exists()) return emptyList()
         return runCatching {

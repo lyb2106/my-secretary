@@ -22,6 +22,7 @@ class App : Application() {
         settings = Settings(this)
         history = HistoryStore(this)
         whitelist = WhitelistStore(this)
+        whitelist.migrateToWordRules(getSharedPreferences("settings", MODE_PRIVATE))
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "변환 진행 상황", NotificationManager.IMPORTANCE_LOW),
         )

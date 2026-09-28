@@ -68,20 +68,23 @@ class GeminiNanoExtractor {
         }
     }
 
+    // No concrete example sentences here: with little input the model tends to copy examples
+    // verbatim, which produced invented to-dos for a short recording.
     private fun prompt(transcript: String) = """
-        아래는 사용자가 아침에 혼잣말로 녹음한 오늘 할 일 메모의 음성 인식 결과다.
+        아래 <녹음> 안의 글은 사용자가 녹음한 음성을 자동으로 받아쓴 것이다.
         규칙:
-        1. 사용자 본인이 오늘 실제로 해야 하는 행동만 추출한다.
-        2. 행동 하나당 한 줄로 쓰고, 각 줄은 "- "로 시작한다.
-        3. 개조식 명사형으로 짧게 끝낸다. 예: "- 김 교수님께 IRB 수정본 메일 발송"
-        4. 시각이 언급되면 24시간제 "HH:MM"을 줄 맨 앞에 쓴다. 예: "- 14:30 랩미팅 자료 확인"
-        5. 잡담, 감탄사, 감정 표현, 이미 끝난 일, 할 일과 무관한 말은 제외한다.
-        6. 원문에 없는 내용을 추가하지 않는다. 영어 용어는 원문 표기를 유지한다.
-        7. 할 일이 없으면 "- 없음" 한 줄만 쓴다.
+        1. <녹음>에 실제로 나온 내용 중, 사용자 본인이 해야 하는 행동만 추출한다.
+        2. <녹음>에 없는 내용은 절대 만들지 않는다. 추측하거나 예시를 지어내지 않는다.
+        3. 행동 하나당 한 줄로 쓰고, 각 줄은 "- "로 시작한다.
+        4. 녹음에 나온 단어를 그대로 살려 개조식 명사형으로 짧게 끝낸다.
+        5. 녹음에서 시각을 말했다면 24시간제 HH:MM 형식으로 줄 맨 앞에 쓴다.
+        6. 잡담, 감탄사, 감정 표현, 이미 끝난 일, 할 일과 무관한 말은 제외한다.
+        7. 해야 할 일이 하나도 없으면 "- 없음" 한 줄만 쓴다.
         8. 목록 외의 설명은 쓰지 않는다.
 
-        음성 인식 결과:
+        <녹음>
         $transcript
+        </녹음>
     """.trimIndent()
 
     /** Keeps each request well inside Gemini Nano's input limit. */

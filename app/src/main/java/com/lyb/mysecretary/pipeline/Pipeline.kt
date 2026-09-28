@@ -8,6 +8,7 @@ import com.lyb.mysecretary.data.HistoryEntry
 import com.lyb.mysecretary.data.ProcessingStats
 import com.lyb.mysecretary.device.ThermalGuard
 import com.lyb.mysecretary.extract.Checklist
+import com.lyb.mysecretary.extract.Grounding
 import com.lyb.mysecretary.learn.Corrections
 import com.lyb.mysecretary.stt.AudioDecoder
 import com.lyb.mysecretary.stt.SpeechToText
@@ -79,7 +80,7 @@ object Pipeline {
                 if (thermalAbort) throw SpeechToText.SttException("기기 발열이 심해 변환을 중단했습니다. 잠시 후 다시 시도하세요.")
                 throw e
             }
-            val transcript = Corrections.apply(raw, rules)
+            val transcript = Corrections.apply(Grounding.cleanTranscript(raw), rules)
 
             _state.value = JobState.Running(Stage.EXTRACTING, null)
             val outcome = ActionExtraction.run(transcript, app.settings.extractionMode, app.gemini)

@@ -12,10 +12,10 @@ enum class ExtractionMethod(val label: String) {
 object Checklist {
     private val dateFormat = DateTimeFormatter.ISO_LOCAL_DATE
 
-    /** Obsidian-compatible Markdown checklist. */
+    /** Obsidian-compatible Markdown checklist; empty when the recording contains no to-dos. */
     fun format(date: LocalDate, actions: List<String>): String {
+        if (actions.isEmpty()) return ""
         val header = "## ${date.format(dateFormat)} 할 일"
-        if (actions.isEmpty()) return "$header\n(추출된 할 일이 없습니다. 원본 전사문을 확인하세요.)"
         return header + "\n" + actions.joinToString("\n") { "- [ ] $it" }
     }
 

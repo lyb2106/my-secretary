@@ -144,7 +144,7 @@ private fun AppRoot(vm: MainViewModel = viewModel()) {
     LaunchedEffect(job) {
         val done = job as? JobState.Done ?: return@LaunchedEffect
         val entry = withContext(Dispatchers.IO) { vm.entry(done.entryId) }
-        if (entry != null && autoCopy) copyToClipboard(context, entry.edited)
+        if (entry != null && autoCopy && entry.edited.isNotBlank()) copyToClipboard(context, entry.edited)
         resultNote = done.note
         route = RESULT + done.entryId
         vm.acknowledgeJob()
@@ -181,7 +181,12 @@ private fun AppRoot(vm: MainViewModel = viewModel()) {
         when {
             route == HISTORY -> {
                 val entries by vm.history.collectAsStateWithLifecycle()
-                HistoryScreen(entries, onOpen = { resultNote = null; route = RESULT + it }, modifier = modifier)
+                HistoryScreen(
+                    entries,
+                    onOpen = { resultNote = null; route = RESULT + it },
+                    onDelete = vm::deleteHistory,
+                    modifier = modifier,
+                )
             }
             route == SETTINGS -> {
                 val rules by vm.whitelist.collectAsStateWithLifecycle()

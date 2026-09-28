@@ -69,7 +69,7 @@ fun SettingsScreen(
 
         Text("교정 사전 (whitelist)", style = MaterialTheme.typography.titleSmall)
         Text(
-            "결과를 수정한 뒤 복사/공유하면 바뀐 단어를 기록합니다. 같은 교정이 2회 이상 나오면 자동 적용되고, " +
+            "결과를 수정한 뒤 복사/공유하면 바뀐 단어(한 단어 단위)를 기록합니다. 같은 교정이 2회 이상 나오면 자동 적용되고, " +
                 "음성 인식 단계에서도 해당 단어를 우선 인식하도록 힌트로 사용합니다.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -81,9 +81,15 @@ fun SettingsScreen(
             OutlinedTextField(wrong, { wrong = it }, Modifier.weight(1f), label = { Text("잘못 인식") }, singleLine = true)
             OutlinedTextField(right, { right = it }, Modifier.weight(1f), label = { Text("올바른 표기") }, singleLine = true)
         }
+        val oneWord = { t: String -> t.isNotBlank() && t.trim().none { it.isWhitespace() } }
+        Text(
+            "교정은 한 단어 단위로만 등록됩니다(띄어쓰기 불가). 사람 이름처럼 문맥마다 다른 단어는 신중히 등록하세요.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Button(
             onClick = { onAddRule(wrong, right); wrong = ""; right = "" },
-            enabled = wrong.isNotBlank() && right.isNotBlank(),
+            enabled = oneWord(wrong) && oneWord(right),
         ) { Text("추가") }
         Spacer(Modifier.height(8.dp))
         if (rules.isEmpty()) {

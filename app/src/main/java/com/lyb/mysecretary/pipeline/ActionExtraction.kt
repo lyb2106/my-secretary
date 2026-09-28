@@ -3,6 +3,7 @@ package com.lyb.mysecretary.pipeline
 import com.lyb.mysecretary.data.ExtractionMode
 import com.lyb.mysecretary.extract.ExtractionMethod
 import com.lyb.mysecretary.extract.GeminiNanoExtractor
+import com.lyb.mysecretary.extract.Grounding
 import com.lyb.mysecretary.extract.RuleBasedExtractor
 import kotlinx.coroutines.withTimeout
 
@@ -12,10 +13,14 @@ object ActionExtraction {
     data class Outcome(val actions: List<String>, val method: ExtractionMethod, val note: String? = null)
 
     suspend fun run(transcript: String, mode: ExtractionMode, gemini: GeminiNanoExtractor): Outcome {
+        val method = if (mode == ExtractionMode.RULE_ONLY) ExtractionMethod.RULE_BASED else ExtractionMethod.GEMINI_NANO
+        // Nothing (or only fillers) was said: never ask a model to "find" to-dos in it.
+        if (Grounding.isEffectivelyEmpty(transcript)) return Outcome(emptyList(), method)
         val rules = { RuleBasedExtractor().extract(transcript) }
         if (mode == ExtractionMode.RULE_ONLY) return Outcome(rules(), ExtractionMethod.RULE_BASED)
         return try {
-            val actions = withTimeout(GEMINI_TIMEOUT_MS) { gemini.extract(transcript) }
+            // Drop any line that cannot be traced back to the recording.
+            val actions = Grounding.filter(withTimeout(GEMINI_TIMEOUT_MS) { gemini.extract(transcript) }, transcript)
             if (actions.isEmpty()) {
                 val fallback = rules()
                 if (fallback.isNotEmpty()) {

@@ -116,6 +116,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _history.value = withContext(Dispatchers.IO) { app.history.all() }
     }
 
+    fun deleteHistory(id: Long) = viewModelScope.launch {
+        _history.value = withContext(Dispatchers.IO) {
+            app.history.delete(id)
+            app.history.all()
+        }
+    }
+
     /** Persists the user's edit and learns corrections from what changed since the last save. */
     fun saveEdit(id: Long, text: String) = viewModelScope.launch(Dispatchers.IO) {
         val entry = app.history.get(id) ?: return@launch

@@ -52,6 +52,7 @@ fun ResultScreen(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 240.dp),
                 textStyle = MaterialTheme.typography.bodyLarge,
                 label = { Text("할 일 (직접 수정 가능)") },
+                placeholder = { Text("녹음에서 할 일을 찾지 못했습니다.") },
             )
             Spacer(Modifier.height(8.dp))
             val s = entry.stats

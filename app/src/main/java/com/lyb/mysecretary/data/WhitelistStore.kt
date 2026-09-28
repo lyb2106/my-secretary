@@ -21,15 +21,35 @@ class WhitelistStore(context: Context) {
         mined.size
     }
 
-    fun addManual(wrong: String, right: String) = synchronized(lock) {
+    /** Adds a whole-word rule. Returns false when either side is not a single word. */
+    fun addManual(wrong: String, right: String): Boolean = synchronized(lock) {
         val w = wrong.trim()
         val r = right.trim()
-        if (w.isEmpty() || r.isEmpty() || w == r) return@synchronized
-        write(read().filterNot { it.wrong == w && it.right == r } + Correction(w, r, Correction.PROMOTE_AT, manual = true))
+        if (!Corrections.isWord(w) || !Corrections.isWord(r) || w == r) return@synchronized false
+        write(read().filterNot { it.wrong == w } + Correction(w, r, Correction.PROMOTE_AT, manual = true))
+        true
+    }
+
+    /**
+     * v0.1.8: rules must be whole words. Drops syllable/phrase rules learned by earlier versions
+     * (e.g. "영 → 형", "현 교수님 내연권 → …") and adds the word rules the user asked for instead.
+     * Runs once.
+     */
+    fun migrateToWordRules(prefs: android.content.SharedPreferences) = synchronized(lock) {
+        if (prefs.getBoolean(MIGRATED_KEY, false)) return@synchronized
+        val kept = read().filter { Corrections.isValidRule(it) }
+        val requested = listOf("김보영" to "김보형", "매일" to "메일", "내연권" to "뇌연구원")
+            .map { (w, r) -> Correction(w, r, Correction.PROMOTE_AT, manual = true) }
+        write(kept.filterNot { k -> requested.any { it.wrong == k.wrong } } + requested)
+        prefs.edit().putBoolean(MIGRATED_KEY, true).apply()
     }
 
     fun remove(rule: Correction) = synchronized(lock) {
         write(read().filterNot { it.wrong == rule.wrong && it.right == rule.right })
+    }
+
+    private companion object {
+        const val MIGRATED_KEY = "whitelist_word_rules_v1"
     }
 
     private fun read(): List<Correction> {
