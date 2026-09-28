@@ -1,12 +1,18 @@
 package com.lyb.mysecretary
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -60,11 +66,27 @@ private const val HOME = "home"
 private const val HISTORY = "history"
 private const val SETTINGS = "settings"
 private const val RESULT = "result:"
+private const val SAMSUNG_RECORDER = "com.sec.android.app.voicenote"
 
 private fun copyToClipboard(context: Context, text: String) {
     context.getSystemService(ClipboardManager::class.java)
         .setPrimaryClip(ClipData.newPlainText("오늘 할 일", text))
     // Android 13+ shows its own confirmation, so no extra toast.
+}
+
+/**
+ * Opens Samsung Voice Recorder; falls back to any app that handles the standard
+ * "record sound" intent. Returns false when no recorder is available.
+ */
+private fun openRecorder(context: Context): Boolean {
+    val intent = context.packageManager.getLaunchIntentForPackage(SAMSUNG_RECORDER)
+        ?: Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
+    return try {
+        context.startActivity(intent)
+        true
+    } catch (e: ActivityNotFoundException) {
+        false
+    }
 }
 
 private fun share(context: Context, text: String) {
@@ -108,7 +130,16 @@ private fun AppRoot(vm: MainViewModel = viewModel()) {
     LifecycleResumeEffect(Unit) {
         hasPermission = audioGranted()
         vm.refreshRecordings()
-        onPauseOrDispose { }
+        // The recorder may finish writing the file just after we come back; refresh on change.
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                vm.refreshRecordings()
+            }
+        }
+        if (hasPermission) {
+            context.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, observer)
+        }
+        onPauseOrDispose { context.contentResolver.unregisterContentObserver(observer) }
     }
     LaunchedEffect(job) {
         val done = job as? JobState.Done ?: return@LaunchedEffect
@@ -182,6 +213,12 @@ private fun AppRoot(vm: MainViewModel = viewModel()) {
                 onSelect = vm::select,
                 onConvert = vm::convertSelected,
                 onPickFile = { pickLauncher.launch(arrayOf("audio/*")) },
+                onRecord = {
+                    vm.onRecorderLaunched()
+                    if (!openRecorder(context)) {
+                        Toast.makeText(context, "음성 녹음 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                },
                 onCancel = vm::cancel,
                 onDismissError = vm::acknowledgeJob,
                 modifier = modifier,

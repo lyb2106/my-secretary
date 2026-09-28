@@ -9,6 +9,14 @@
     <!-- App code never uses the network (speech recognition is on-device). Note: the ML Kit GenAI
          library merges INTERNET/ACCESS_NETWORK_STATE into the final manifest. -->
 
+    <!-- Package visibility (Android 11+) so the 녹음 button can open Samsung Voice Recorder. -->
+    <queries>
+        <package android:name="com.sec.android.app.voicenote" />
+        <intent>
+            <action android:name="android.provider.MediaStore.RECORD_SOUND" />
+        </intent>
+    </queries>
+
     <application
         android:name=".App"
         android:allowBackup="false"

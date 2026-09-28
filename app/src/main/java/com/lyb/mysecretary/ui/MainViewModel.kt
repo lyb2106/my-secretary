@@ -26,6 +26,11 @@ import java.time.Instant
 import java.time.ZoneId
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        // MediaStore DATE_ADDED has 1-second resolution.
+        const val CLOCK_SLACK_MS = 2_000L
+    }
+
     private val app = application as App
     private val recordingsRepo = RecordingRepository(application)
 
@@ -55,15 +60,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _busyMessage = MutableStateFlow<String?>(null)
     val busyMessage: StateFlow<String?> = _busyMessage.asStateFlow()
 
+    /** Set when the user leaves for the recorder app; the next new file gets selected on return. */
+    private var recorderLaunchedAt = 0L
+
     fun refreshRecordings() = viewModelScope.launch {
         val list = withContext(Dispatchers.IO) { runCatching { recordingsRepo.recent() }.getOrDefault(emptyList()) }
         _recordings.value = list
-        if (_selected.value == null || list.none { it.uri == _selected.value }) {
+        val newest = list.firstOrNull()
+        if (recorderLaunchedAt > 0 && newest != null && newest.addedAtMillis >= recorderLaunchedAt - CLOCK_SLACK_MS) {
+            _selected.value = newest.uri
+            recorderLaunchedAt = 0
+        } else if (_selected.value == null || list.none { it.uri == _selected.value }) {
             _selected.value = (list.firstOrNull { it.isToday } ?: list.firstOrNull())?.uri
         }
     }
 
+    fun onRecorderLaunched() {
+        recorderLaunchedAt = System.currentTimeMillis()
+    }
+
     fun select(uri: Uri) {
+        recorderLaunchedAt = 0
         _selected.value = uri
     }
 

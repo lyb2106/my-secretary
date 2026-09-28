@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,6 +48,7 @@ fun HomeScreen(
     onSelect: (Uri) -> Unit,
     onConvert: () -> Unit,
     onPickFile: () -> Unit,
+    onRecord: () -> Unit,
     onCancel: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
@@ -78,13 +80,15 @@ fun HomeScreen(
                 Spacer(Modifier.height(12.dp))
             }
             if (hasPermission) {
-                RecordingPicker(recordings, selected, onSelect, onConvert, onPickFile, Modifier.weight(1f))
+                RecordingPicker(recordings, selected, onSelect, onConvert, onPickFile, onRecord, Modifier.weight(1f))
             } else {
                 Text("녹음 파일 목록을 보려면 오디오 접근 권한이 필요합니다.")
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = onRequestPermission) { Text("권한 허용") }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = onPickFile) { Text("다른 파일 선택") }
+                Spacer(Modifier.height(8.dp))
+                FilledTonalButton(onClick = onRecord) { Text("녹음") }
             }
         }
     }
@@ -97,6 +101,7 @@ private fun RecordingPicker(
     onSelect: (Uri) -> Unit,
     onConvert: () -> Unit,
     onPickFile: () -> Unit,
+    onRecord: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
@@ -121,6 +126,9 @@ private fun RecordingPicker(
         ) { Text("변환", style = MaterialTheme.typography.titleMedium) }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onPickFile, modifier = Modifier.fillMaxWidth()) { Text("다른 파일 선택") }
+        Spacer(Modifier.height(8.dp))
+        // Opens Samsung Voice Recorder; the new file is picked up when the user comes back.
+        FilledTonalButton(onClick = onRecord, modifier = Modifier.fillMaxWidth()) { Text("녹음") }
     }
 }
 
